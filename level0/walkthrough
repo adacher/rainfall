@@ -1,0 +1,14 @@
+Running the level0 binary, we notice a hint when providing an argument.
+Inspecting with gdb with notice :
+
+0x08048ed4 <+20>:    call   0x8049710 <atoi>
+0x08048ed9 <+25>:    cmp    $0x1a7,%eax
+0x08048ede <+30>:    jne    0x8048f58 <main+152>
+
+The binary prints No ! and quits if the return value of atoi is not equal to 0x1a7.
+Let's run it with the decimal value of 0x1a7 which is 423.
+
+./level0 423
+whoami
+level1
+cat /home/user/level1/.pass

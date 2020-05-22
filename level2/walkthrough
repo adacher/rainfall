@@ -77,4 +77,4 @@ Finally :
 cat /tmp/payload - | ./level2
 whoami
 level3
-cat /home/user/level3/.pass
+cat /home/user/level1/.pass

