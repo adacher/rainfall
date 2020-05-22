@@ -5,7 +5,7 @@ i func
 
 The run function calls system(/bin/sh).
 
-The goal is then to overwrite an address in the main function with the run function's address.
+The goal is then to overflow the gets() buffer and overwrite eip with the run() function's address.
 
 In order to do this we need to know where to overflow :
 push -> +4
@@ -25,9 +25,9 @@ c
 n
 0x08048444 in run ()
 
-Our payload worked and we ran the run() function instead of gets().
+Our payload worked and we launched the run() function by overwriting the gets() buffer.
 
-Let's use cat to leave the new shell open :
+Let's use cat to run the new shell:
 
 cat /tmp/payload - | ./level1
 Good... Wait what?
