@@ -10,7 +10,7 @@ int main (int argc, char **argv) {
     char *dataService;
     
     while (1) {
-        printf("");
+        printf("%p, %p", dataAuth, dataService);
         if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
             break;
         }
