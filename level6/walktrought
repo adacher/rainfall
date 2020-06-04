@@ -1,8 +1,0 @@
-On lance gdb avec un argument, disons 423
-En mettant un break sur main + 84: (0x080484d0 <+84>:    call   *%eax)
-En fesant i r, on vois $eax = 0x8048468, puis on fait x/i qui nous dis que cette adresse pointe vers m
-Donc on observe que l'adresse contenu dans eax pointe vers la function m, ce qui signie que la fonction n n'est pas appeller.
-On recherche ou segfault le programme.
-Une fois trouver on peux set la commande avec la redirection vers la function n.
-
-./level6 `python -c "A" * 72 + "\x54\x84\x04\x08"'`

