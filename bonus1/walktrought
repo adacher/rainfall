@@ -1,7 +1,0 @@
-En utilisant gdb sur le binaire, nous voyons qu'il y a une condition et que nous devons mettre une valeur inferieur a 9 pour rentrer dedans.
-Nous pouvons facilement passer un nombre inférieur à 10, mais ils ne seront pas assez gros pour déborder buf. Si nous transmettons un nombre négatif, nous contournons la vérification, mais l'appel à memcpy échouera car count * sizeof(int) est négatif.
-Par contre, la fonction memcpy utilise size_t(unsigned int) qui fait que le chiffre devient un chiffre positif. Un unsigned int a une valeur minimum de 0 parce que les unsigned int sont sujets au module arithmetique.
-(Un lien pour mieux détailler) https://www.exploit-db.com/docs/english/28550-understanding-c-integer-boundaries-(overflows-&-underflow).pdf
-Et comme nous multiplions par 4. Il faut diviser le UINT_MAX par 4 donc 4294967295 / 4 = 1073741823, puis avec un buffer de 40, je redivise par 4. 40 / 4 = 10 donc 1073741823 - 10 = 1073741813 et donc nous pouvons overflow en lui rajoutant 40 octets.
-./bonus1 -1073741807 $(python -c 'print "A" * 40 + "\x46\x4c\x4f\x57"')
-
