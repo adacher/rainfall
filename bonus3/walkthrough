@@ -1,0 +1,35 @@
+This level is solvable by using reverse engineering.
+
+We see 2 variables before a call to fopen(), let's us p/s (char*) var.
+
+0x08048502 <+14>:    mov    $0x80486f0,%edx -> "r"
+0x08048507 <+19>:    mov    $0x80486f2,%eax -> "/home/user/end/.pass"
+
+We then have a condition, if fopen is null or argc is not equal to 2, the program returns.
+
+0x08048533 <+63>:    cmpl   $0x0,0x9c(%esp)
+0x0804853b <+71>:    je     0x8048543 <main+79>
+0x0804853d <+73>:    cmpl   $0x2,0x8(%ebp)
+0x08048541 <+77>:    je     0x804854d <main+89>
+0x08048543 <+79>:    mov    $0xffffffff,%eax
+0x08048548 <+84>:    jmp    0x8048615 <main+289>
+
+Then there is an fread() on file which is saved in a buffer. Then atoi() is called, atoi() returns 0 if "" is given as parameters.
+
+0x08048584 <+144>:   call   0x8048430 <atoi@plt>
+0x08048589 <+149>:   movb   $0x0,0x18(%esp,%eax,1)
+
+Line 149 indicates that we need to replace a value in memory which can be translated as such :
+buffer[atoi(argv[1])] = 0; // $0x0(0), 0x18(buffer), %eax(atoi), %esp and 1 (argv[1]).
+
+There is another fread() and fclose().
+0x080485b3 <+191>:   call   0x80483d0 <fread@plt>
+0x080485b8 <+196>:   mov    0x9c(%esp),%eax
+0x080485bf <+203>:   mov    %eax,(%esp)
+0x080485c2 <+206>:   call   0x80483c0 <fclose@plt>
+
+Lastly, there is a call to strcmp() comparing buffer and argv[1]. We just have to compare Buffer (reminder : buffer[0] = 0) with "" which will return 0 and allow us to run the shell.
+0x080485da <+230>:   call   0x80483b0 <strcmp@plt>
+0x080485df <+235>:   test   %eax,%eax
+
+./bonus3 ""

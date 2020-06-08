@@ -1,0 +1,10 @@
+The binary is in cpp.
+
+An N class is defined, it contains a function setAnnotation which copies a (char **), in our case, argv[1] using memcpy().
+
+if argc() is 1, the program returns.
+0x080485fe <+10>:    cmpl   $0x1,0x8(%ebp)
+
+Let's use a buffer overflow for this case since memcpy() is used.
+
+(a finir <3)
