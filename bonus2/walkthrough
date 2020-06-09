@@ -16,7 +16,7 @@ Let's run it with a bigger buffer by setting the LANG value to nl (fi would work
 LANG="nl"
 
 Run again.
-gdb --args bonus2 $(python -c 'print "A" * 40 + " " + "B" * 32')
+gdb --args bonus2 $(python -c 'print "A" * 40 + " " + "B" * 27')
 r
 Starting program: /home/user/bonus2/bonus2 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
 Goedemiddag! AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
